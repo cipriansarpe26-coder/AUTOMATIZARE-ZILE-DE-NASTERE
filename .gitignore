@@ -1,0 +1,17 @@
+# Date personale ale enoriașilor — NU trebuie să ajungă niciodată în git,
+# mai ales dacă repo-ul e public.
+ZILE.xlsx
+*.xlsx
+!*.example.xlsx
+
+# Secrete
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
