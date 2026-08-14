@@ -1,0 +1,45 @@
+name: Notificari zile de nastere si onomastici
+
+on:
+  schedule:
+    # 05:00 UTC in fiecare zi.
+    # Romania e UTC+3 vara (ora de vara, EEST, ~ultima duminica din martie
+    # pana in ultima duminica din octombrie) si UTC+2 iarna (EET).
+    # => 05:00 UTC = 08:00 Romania VARA, dar 07:00 Romania IARNA.
+    # GitHub Actions nu suporta cron cu offset de fus orar variabil (DST),
+    # asa ca daca vrei EXACT 08:00 Romania tot anul, ajusteaza manual:
+    #   - vara (~ultima dum. martie -> ultima dum. octombrie): "0 5 * * *"
+    #   - iarna (restul anului):                                "0 6 * * *"
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}  # permite rulare manuala din tab-ul Actions, pentru test
+
+jobs:
+  notificari:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cod
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalare dependinte
+        run: pip install -r requirements.txt
+
+      - name: Reconstruire ZILE.xlsx din secret
+        env:
+          ZILE_XLSX_BASE64: ${{ secrets.ZILE_XLSX_BASE64 }}
+        run: |
+          if [ -z "$ZILE_XLSX_BASE64" ]; then
+            echo "::error::Secretul ZILE_XLSX_BASE64 nu este setat. Vezi README pentru cum il configurezi."
+            exit 1
+          fi
+          echo "$ZILE_XLSX_BASE64" | base64 --decode > ZILE.xlsx
+
+      - name: Rulare notificari
+        env:
+          META_PHONE_NUMBER_ID: ${{ secrets.META_PHONE_NUMBER_ID }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+        run: python main.py
