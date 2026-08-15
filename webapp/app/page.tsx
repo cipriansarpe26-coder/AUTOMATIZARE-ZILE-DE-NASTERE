@@ -48,9 +48,39 @@ function DaySection({ report }: { report: DayReport }) {
 }
 
 export default async function DashboardPage() {
-  const supabase = supabaseServer();
-  const { data, error } = await supabase.from("enoriasi").select("*");
-  const people = (data ?? []) as Person[];
+  let people: Person[] = [];
+  let fatalError: string | null = null;
+  let queryError: string | null = null;
+
+  try {
+    const supabase = supabaseServer();
+    const { data, error } = await supabase.from("enoriasi").select("*");
+    if (error) {
+      queryError = error.message;
+    } else {
+      people = (data ?? []) as Person[];
+    }
+  } catch (err) {
+    fatalError = err instanceof Error ? err.message : String(err);
+  }
+
+  if (fatalError) {
+    return (
+      <main className="page">
+        <h1>🔔 Zile de naștere &amp; onomastici</h1>
+        <p className="error">
+          Aplicația nu s-a putut conecta la baza de date: <strong>{fatalError}</strong>
+        </p>
+        <p className="muted">
+          Verifică în Vercel → Settings → Environment Variables că ai adăugat corect
+          <code> SUPABASE_URL</code> și <code>SUPABASE_SERVICE_ROLE_KEY</code> (fără spații
+          înainte/după, cheia <code>service_role</code>, nu <code>anon</code>), apoi
+          redeployează.
+        </p>
+      </main>
+    );
+  }
+
   const { tomorrow, nextWeek } = computeUpcoming(people, todayUTC());
 
   return (
@@ -63,9 +93,18 @@ export default async function DashboardPage() {
         </div>
       </nav>
 
-      {error && <p className="error">Eroare la citirea bazei de date: {error.message}</p>}
+      {queryError && (
+        <p className="error">
+          Eroare la citirea bazei de date: <strong>{queryError}</strong>
+          <br />
+          <span className="muted">
+            Dacă mesajul spune ceva despre tabelul „enoriasi" care nu există, rulează din nou
+            scriptul din <code>supabase/schema.sql</code> în Supabase → SQL Editor.
+          </span>
+        </p>
+      )}
 
-      {!error && people.length === 0 && (
+      {!queryError && people.length === 0 && (
         <p className="empty">
           Nu ai niciun enoriaș încă. <Link href="/import">Importă din Excel</Link> ca să
           începi.

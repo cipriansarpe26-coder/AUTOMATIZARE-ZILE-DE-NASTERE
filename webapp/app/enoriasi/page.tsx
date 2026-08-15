@@ -23,16 +23,26 @@ export default async function EnoriasiPage({
 }: {
   searchParams: { q?: string };
 }) {
-  const supabase = supabaseServer();
   const q = searchParams?.q?.trim() ?? "";
+  let people: PersonRow[] = [];
+  let error: string | null = null;
 
-  let query = supabase.from("enoriasi").select("*").order("nume").order("prenume");
-  if (q) {
-    const escaped = q.replace(/[%_]/g, "");
-    query = query.or(`nume.ilike.%${escaped}%,prenume.ilike.%${escaped}%`);
+  try {
+    const supabase = supabaseServer();
+    let query = supabase.from("enoriasi").select("*").order("nume").order("prenume");
+    if (q) {
+      const escaped = q.replace(/[%_]/g, "");
+      query = query.or(`nume.ilike.%${escaped}%,prenume.ilike.%${escaped}%`);
+    }
+    const { data, error: queryError } = await query;
+    if (queryError) {
+      error = queryError.message;
+    } else {
+      people = (data ?? []) as PersonRow[];
+    }
+  } catch (err) {
+    error = err instanceof Error ? err.message : String(err);
   }
-  const { data, error } = await query;
-  const people = (data ?? []) as PersonRow[];
 
   return (
     <main className="page">
@@ -50,7 +60,7 @@ export default async function EnoriasiPage({
         <button type="submit">Caută</button>
       </form>
 
-      {error && <p className="error">{error.message}</p>}
+      {error && <p className="error">{error}</p>}
 
       {people.length === 0 && !error && <p className="muted">Niciun rezultat.</p>}
 

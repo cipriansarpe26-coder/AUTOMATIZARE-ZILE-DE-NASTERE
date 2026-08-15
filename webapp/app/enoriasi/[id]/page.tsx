@@ -6,17 +6,29 @@ import { deletePerson, updatePerson } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function PersonEditPage({ params }: { params: { id: string } }) {
-  const supabase = supabaseServer();
-  const { data: person, error } = await supabase
-    .from("enoriasi")
-    .select("*")
-    .eq("id", params.id)
-    .maybeSingle();
+  let person: Record<string, any> | null = null;
 
-  if (error) {
+  try {
+    const supabase = supabaseServer();
+    const { data, error } = await supabase
+      .from("enoriasi")
+      .select("*")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (error) {
+      return (
+        <main className="page">
+          <p className="error">{error.message}</p>
+        </main>
+      );
+    }
+    person = data;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     return (
       <main className="page">
-        <p className="error">{error.message}</p>
+        <p className="error">Aplicația nu s-a putut conecta la baza de date: {message}</p>
       </main>
     );
   }
